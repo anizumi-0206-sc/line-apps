@@ -83,15 +83,26 @@ async function registerUser() {
     btn.innerText = "送信中...";
 
     try {
-        // ★Step 3でここに fetch() を書きます
+        // ★ここを実装！
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId: profile.userId,
+                displayName: profile.displayName,
+                role: role
+            })
+        });
+
+        const result = await response.json();
         
-        // 仮の成功アラート
-        alert(`【テスト成功】\n名前: ${profile.displayName}\n権限: ${role}\n\nこれからバックエンドに送信します！`);
-
-        // 完了画面へ
-        document.getElementById('registration-form').style.display = 'none';
-        document.getElementById('complete-message').style.display = 'block';
-
+        if (result.status === 'success') {
+             alert(`【成功】\n${profile.displayName} さんを [${role}] として登録しました。\nメニューが切り替わります！`);
+        } else {
+             throw new Error(result.message);
+        }
     } catch (error) {
         console.error(error);
         alert("送信エラーが発生しました。");
