@@ -1,31 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
 <head>
-    <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スケジュールアプリ登録</title>
     <link rel="stylesheet" href="style.css">
-    <script src="app.js"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
-<div class="form-group">
-    <label>あなたの役割を選択してください</label>
-    <div class="radio-group">
-        <label class="radio-card">
-            <input type="radio" name="role" value="student" checked onchange="toggleTeacherAuth(false)">
-            <div class="card-content">
-                <span class="icon">🎓</span>
-                <span>一般</span>
-            </div>
-        </label>
-        
-        <label class="radio-card">
-            <input type="radio" name="role" value="teacher" onchange="toggleTeacherAuth(true)">
-            <div class="card-content">
-                <span class="icon">🧑‍🏫</span>
-                <span>管理者</span>
-            </div>
-        </label>
-    </div>
-</div>
+<body>
+    <div class="container">
+        <div id="loading" class="status-message">
+            <p>読み込み中...</p>
+        </div>
 
-<div id="teacher-auth-area" style="display: none; margin-top: 15px;">
-    <label for="teacher-pass">管理者パスワード</label>
-    <input type="password" id="teacher-pass" placeholder="パスワードを入力" 
-           style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box;">
-</div>
+        <div id="registration-form" style="display: none;">
+            <div class="profile-section">
+                <img id="profile-img" src="" alt="Profile">
+                <p id="display-name">ゲストさん</p>
+            </div>
+
+            <div class="form-group">
+                <label>あなたの役割を選択してください</label>
+                <div class="radio-group">
+                    <label class="radio-card">
+                        <input type="radio" name="role" value="student" checked>
+                        <div class="card-content">
+                            <span class="icon">🎓</span>
+                            <span>学生</span>
+                        </div>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="role" value="teacher">
+                        <div class="card-content">
+                            <span class="icon">🧑‍🏫</span>
+                            <span>教師</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <button class="btn-primary" onclick="registerUser()">連携を開始する</button>
+        </div>
+
+        <div id="complete-message" style="display: none;">
+            <h2>登録完了！</h2>
+            <p>メニューが切り替わります。<br>一度トーク画面に戻ってください。</p>
+            <button class="btn-secondary" onclick="liff.closeWindow()">閉じる</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
