@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スケジュール設定アプリ</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
+        #user-info { margin-top: 20px; font-weight: bold; }
+        .btn { background: #06C755; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h2>初期セットアップ</h2>
+    <div id="user-info">読み込み中...</div>
+    <br>
+    <button class="btn" onclick="registerUser()">このアカウントで登録する</button>
+
+    <script>
+        // LIFFの初期化
+        async function main() {
+            await liff.init({ liffId: "2009080549" }); // ここを書き換える
+
+            if (!liff.isLoggedIn()) {
+                liff.login(); // ログインしていなければログイン画面へ
+            } else {
+                const profile = await liff.getProfile();
+                document.getElementById('user-info').innerText = `こんにちは、${profile.displayName} さん！`;
+                
+                // ここで取得した profile.userId を後のDB登録で使用します
+                window.userData = profile;
+            }
+        }
+
+        async function registerUser() {
+            const profile = window.userData;
+            // 本来はここでPythonのAPI（AWSのサーバー）へデータを送る
+            alert(`ID: ${profile.userId} をDBに登録するリクエストを送ります`);
+            
+            // 例: fetch('https://your-api.com/register', { method: 'POST', ... })
+        }
+
+        main();
+    </script>
+</body>
+</html>
