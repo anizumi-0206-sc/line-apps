@@ -34,12 +34,25 @@
         }
 
         async function registerUser() {
-            const profile = window.userData;
-            // 本来はここでPythonのAPI（AWSのサーバー）へデータを送る
-            alert(`ID: ${profile.userId} をDBに登録するリクエストを送ります`);
-            
-            // 例: fetch('https://your-api.com/register', { method: 'POST', ... })
-        }
+    const profile = window.userData;
+    const EC2_PUBLIC_IP = "http://あなたのEC2のIPアドレス:8000"; // 後でElastic IPを当てるのがおすすめ
+
+    try {
+        const response = await fetch(`${EC2_PUBLIC_IP}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: profile.userId,
+                displayName: profile.displayName
+            })
+        });
+        const result = await response.json();
+        alert(result.message);
+    } catch (error) {
+        console.error("Error:", error);
+        alert("登録に失敗しました");
+    }
+}
 
         main();
     </script>
