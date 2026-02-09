@@ -1,60 +1,26 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>スケジュール設定アプリ</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
-        #user-info { margin-top: 20px; font-weight: bold; }
-        .btn { background: #06C755; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
-    </style>
-</head>
-<body>
-    <h2>初期セットアップ</h2>
-    <div id="user-info">読み込み中...</div>
-    <br>
-    <button class="btn" onclick="registerUser()">このアカウントで登録する</button>
+<div class="form-group">
+    <label>あなたの役割を選択してください</label>
+    <div class="radio-group">
+        <label class="radio-card">
+            <input type="radio" name="role" value="student" checked onchange="toggleTeacherAuth(false)">
+            <div class="card-content">
+                <span class="icon">🎓</span>
+                <span>一般</span>
+            </div>
+        </label>
+        
+        <label class="radio-card">
+            <input type="radio" name="role" value="teacher" onchange="toggleTeacherAuth(true)">
+            <div class="card-content">
+                <span class="icon">🧑‍🏫</span>
+                <span>管理者</span>
+            </div>
+        </label>
+    </div>
+</div>
 
-    <script>
-        // LIFFの初期化
-        async function main() {
-            await liff.init({ liffId: "2009080549" }); // ここを書き換える
-
-            if (!liff.isLoggedIn()) {
-                liff.login(); // ログインしていなければログイン画面へ
-            } else {
-                const profile = await liff.getProfile();
-                document.getElementById('user-info').innerText = `こんにちは、${profile.displayName} さん！`;
-                
-                // ここで取得した profile.userId を後のDB登録で使用します
-                window.userData = profile;
-            }
-        }
-
-        async function registerUser() {
-    const profile = window.userData;
-    const EC2_PUBLIC_IP = "http://あなたのEC2のIPアドレス:8000"; // 後でElastic IPを当てるのがおすすめ
-
-    try {
-        const response = await fetch(`${EC2_PUBLIC_IP}/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: profile.userId,
-                displayName: profile.displayName
-            })
-        });
-        const result = await response.json();
-        alert(result.message);
-    } catch (error) {
-        console.error("Error:", error);
-        alert("登録に失敗しました");
-    }
-}
-
-        main();
-    </script>
-</body>
-</html>
+<div id="teacher-auth-area" style="display: none; margin-top: 15px;">
+    <label for="teacher-pass">管理者パスワード</label>
+    <input type="password" id="teacher-pass" placeholder="パスワードを入力" 
+           style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box;">
+</div>
