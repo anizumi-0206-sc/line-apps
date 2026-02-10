@@ -1,115 +1,145 @@
-// ▼▼▼ ここにあなたのLIFF IDを入れてください ▼▼▼
+// ▼▼▼ 設定エリア (書き換えてください) ▼▼▼
 const MY_LIFF_ID = "2009080549-aia5HOne"; 
-// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+const BASE_URL   = "https://exaggerative-zavier-nonfluidly.ngrok-free.de/register"; // ngrokのURL
+// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-// バックエンドのURL (Step 3で書き換えます)
-const API_URL = "https://exaggerative-zavier-nonfluidly.ngrok-free.de/register"; 
+let lineProfile = null;
+let calendar = null; // カレンダーオブジェクト
 
-// --------------------------------------------------
-// 1. メイン処理 (アプリ起動時に動く)
-// --------------------------------------------------
 async function main() {
-    // デバッグ用: 開始を知らせる
-    console.log("App started");
-
     try {
-        // LIFFの初期化
         await liff.init({ liffId: MY_LIFF_ID });
-        
-        // ログインチェック
-        if (!liff.isLoggedIn()) {
-            liff.login();
-            return;
-        }
+        if (!liff.isLoggedIn()) { liff.login(); return; }
 
-        // プロフィール取得
         const profile = await liff.getProfile();
-        console.log("Profile got:", profile);
+        lineProfile = profile;
 
-        // 画面に名前などを反映
-        document.getElementById('display-name').innerText = profile.displayName;
-        // 画像がある場合のみセット
-        if (profile.pictureUrl) {
-            document.getElementById('profile-img').src = profile.pictureUrl;
+        // ユーザー状態を確認
+        try {
+            const response = await fetch(`${BASE_URL}/check_user`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
+                },
+                body: JSON.stringify({ userId: profile.userId })
+            });
+
+            if (!response.ok) throw new Error("API Error");
+            const userStatus = await response.json();
+
+            // ローディング消去
+            document.getElementById('loading').style.display = 'none';
+
+            // ★ 振り分け処理
+            if (userStatus.status === 'registered') {
+                if (userStatus.role === 'student') {
+                    // 学生 -> カレンダー表示
+                    showStudentCalendar(userStatus.name);
+                } else {
+                    // 教師 -> 管理画面表示
+                    document.getElementById('teacher-page').style.display = 'block';
+                }
+            } else {
+                // 未登録 -> 登録フォーム
+                showRegistrationForm(profile);
+            }
+
+        } catch (e) {
+            alert("エラー: " + e.message);
         }
-
-        // グローバル変数に保存（送信時に使うため）
-        window.lineProfile = profile;
-
-        // ★ここで初めて「読み込み中」を消して「入力フォーム」を出す
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('registration-form').style.display = 'block';
-
-    } catch (error) {
-        // エラーが起きたら画面に出す
-        alert("初期化エラー:\n" + error);
-        console.error(error);
+    } catch (err) {
+        alert("LIFF初期化エラー: " + err);
     }
 }
 
 // --------------------------------------------------
-// 2. UI操作関数 (教師/学生の切り替え)
+// 画面表示関数
 // --------------------------------------------------
-function toggleTeacherAuth(isTeacher) {
+function showRegistrationForm(profile) {
+    document.getElementById('display-name').innerText = profile.displayName;
+    if (profile.pictureUrl) document.getElementById('profile-img').src = profile.pictureUrl;
+    document.getElementById('registration-form').style.display = 'block';
+}
+
+function showStudentCalendar(userName) {
+    document.getElementById('student-page').style.display = 'block';
+    
+    // カレンダーの初期化 (FullCalendar)
+    const calendarEl = document.getElementById('calendar');
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth', // 月表示
+        locale: 'ja',                // 日本語化
+        headerToolbar: {
+            left: 'prev,next',
+            center: 'title',
+            right: 'today'
+        },
+        height: 'auto',
+        // イベント(予定)の仮データ
+        events: [
+            { title: '面談練習', start: '2026-02-15', color: '#ff9f89' },
+            { title: '提出日', start: '2026-02-20', color: '#3788d8' }
+        ],
+        // 日付をクリックした時の処理
+        dateClick: function(info) {
+            alert('選択された日付: ' + info.dateStr);
+            // 次のステップでここに予約処理を書きます
+        }
+    });
+    calendar.render();
+}
+
+// --------------------------------------------------
+// 登録関連の処理 (前回と同じ)
+// --------------------------------------------------
+window.toggleTeacherAuth = function(isTeacher) {
     const authArea = document.getElementById('teacher-auth-area');
-    if (isTeacher) {
-        authArea.style.display = 'block';
-    } else {
-        authArea.style.display = 'none';
-        document.getElementById('teacher-pass').value = ""; // リセット
-    }
-}
+    authArea.style.display = isTeacher ? 'block' : 'none';
+    if (!isTeacher) document.getElementById('teacher-pass').value = "";
+};
 
-// --------------------------------------------------
-// 3. 登録ボタンを押した時の処理
-// --------------------------------------------------
-async function registerUser() {
-    const role = document.querySelector('input[name="role"]:checked').value;
-    
-    // --- パスワードチェック ---
+window.registerUser = async function() {
+    const roleEl = document.querySelector('input[name="role"]:checked');
+    if (!roleEl) return alert("役割が選択されていません");
+    const role = roleEl.value;
+
     if (role === 'teacher') {
-        const pass = document.getElementById('teacher-pass').value;
-        if (pass !== "anabuki-js27") {
-            alert("パスワードが違います。\n教師登録は許可された人のみ可能です。");
-            return; 
+        if (document.getElementById('teacher-pass').value !== "anabuki-js27") {
+            return alert("パスワードが違います");
         }
     }
 
-    const profile = window.lineProfile;
     const btn = document.querySelector('.btn-primary');
-    
-    // 二重送信防止
     btn.disabled = true;
     btn.innerText = "送信中...";
 
     try {
-        // ★ここを実装！
-        const response = await fetch(API_URL, {
+        const response = await fetch(`${BASE_URL}/register`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
+            headers: { 
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
             },
             body: JSON.stringify({
-                userId: profile.userId,
-                displayName: profile.displayName,
+                userId: lineProfile.userId,
+                displayName: lineProfile.displayName,
                 role: role
             })
         });
-
         const result = await response.json();
         
         if (result.status === 'success') {
-             alert(`【成功】\n${profile.displayName} さんを [${role}] として登録しました。\nメニューが切り替わります！`);
+            document.getElementById('registration-form').style.display = 'none';
+            document.getElementById('complete-message').style.display = 'block';
         } else {
-             throw new Error(result.message);
+            alert("登録失敗: " + result.message);
+            btn.disabled = false;
         }
     } catch (error) {
-        console.error(error);
-        alert("送信エラーが発生しました。");
+        alert("エラー: " + error);
         btn.disabled = false;
-        btn.innerText = "連携を開始する";
     }
-}
+};
 
-// 最後にメイン関数を実行してスタート！
 main();
