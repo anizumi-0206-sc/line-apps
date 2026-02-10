@@ -117,3 +117,36 @@ label {
     margin-top: 50px;
     color: #888;
 }
+
+/* --- カレンダー用の追加スタイル --- */
+.page-title {
+    text-align: center;
+    margin-top: 0;
+    color: #333;
+    font-size: 1.2rem;
+}
+
+#calendar {
+    max-width: 100%;
+    margin: 0 auto;
+    background: white;
+    padding: 5px;
+    border-radius: 8px;
+    /* スマホで縦長になりすぎないように */
+    height: 500px; 
+}
+
+/* FullCalendarの文字サイズ調整 */
+.fc-toolbar-title {
+    font-size: 1.2em !important;
+}
+.fc-button {
+    font-size: 0.8em !important;
+}
+
+.info-text {
+    text-align: center;
+    font-size: 0.8em;
+    color: #888;
+    margin-top: 10px;
+}
