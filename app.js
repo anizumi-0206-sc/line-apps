@@ -1,4 +1,4 @@
-// ▼▼▼ 設定エリア (書き換えてください) ▼▼▼
+// ▼▼▼ 設定エリア ▼▼▼
 const MY_LIFF_ID = "2009080549-aia5HOne"; 
 const BASE_URL   = "https://exaggerative-zavier-nonfluidly.ngrok-free.dev/"; // ngrokのURL
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
@@ -14,7 +14,6 @@ async function main() {
         const profile = await liff.getProfile();
         lineProfile = profile;
 
-        // ユーザー状態確認
         try {
             const response = await fetch(`${BASE_URL}/check_user`, {
                 method: 'POST',
@@ -32,11 +31,9 @@ async function main() {
                 if (userStatus.role === 'student') {
                     showStudentCalendar(userStatus.name);
                 } else {
-                    // 教師画面へ
                     showTeacherDashboard(userStatus.name);
                 }
             } else {
-                // ★ここでエラーが出ていました。下に関数を追加しました！
                 showRegistrationForm(profile);
             }
 
@@ -49,20 +46,7 @@ async function main() {
 }
 
 // --------------------------------------------------
-// ★追加: これが抜けていました！(登録フォーム表示)
-// --------------------------------------------------
-function showRegistrationForm(profile) {
-    document.getElementById('display-name').innerText = profile.displayName;
-    if (profile.pictureUrl) document.getElementById('profile-img').src = profile.pictureUrl;
-    
-    // 他の画面を隠してフォームを出す
-    document.getElementById('student-page').style.display = 'none';
-    document.getElementById('teacher-page').style.display = 'none';
-    document.getElementById('registration-form').style.display = 'block';
-}
-
-// --------------------------------------------------
-// 共通: イベント取得関数
+// 共通: イベント取得
 // --------------------------------------------------
 async function fetchEvents(info, successCallback, failureCallback) {
     try {
@@ -89,9 +73,14 @@ function showStudentCalendar(userName) {
         height: 'auto',
         events: fetchEvents, 
 
-        // 日付クリックで予約
+        // 日付クリックで予約 (時間入力付き)
         dateClick: async function(info) {
-            if (!confirm(`${info.dateStr} に面談を予約しますか？`)) return;
+            // 時間を入力させる
+            const timeStr = prompt(`${info.dateStr} の希望時間を入力してください (例: 10:00)`);
+            if (!timeStr) return; // キャンセルされたら終了
+
+            const confirmMsg = `${info.dateStr} ${timeStr} に予約を申請しますか？`;
+            if (!confirm(confirmMsg)) return;
 
             try {
                 const res = await fetch(`${BASE_URL}/book`, {
@@ -103,12 +92,13 @@ function showStudentCalendar(userName) {
                     body: JSON.stringify({
                         userId: lineProfile.userId,
                         userName: lineProfile.displayName,
-                        date: info.dateStr
+                        date: info.dateStr,
+                        time: timeStr // 時間も送る
                     })
                 });
                 const result = await res.json();
                 if (result.status === 'success') {
-                    alert("予約しました！");
+                    alert("申請しました！\n先生の承認をお待ちください。");
                     calendar.refetchEvents();
                 } else {
                     alert("エラー: " + result.message);
@@ -116,13 +106,20 @@ function showStudentCalendar(userName) {
             } catch (e) {
                 alert("通信エラー: " + e);
             }
+        },
+        
+        // 自分の予定をタップした時
+        eventClick: function(info) {
+            const status = info.event.extendedProps.status;
+            const statusText = status === 1 ? "【確定済み】" : "【申請中】";
+            alert(`${statusText}\n日時: ${info.event.startStr} ${info.event.extendedProps.time}`);
         }
     });
     calendar.render();
 }
 
 // --------------------------------------------------
-// 教師用ダッシュボード (削除機能付き)
+// 教師用ダッシュボード (承認・削除・登録機能)
 // --------------------------------------------------
 function showTeacherDashboard(userName) {
     document.getElementById('teacher-page').style.display = 'block';
@@ -132,44 +129,119 @@ function showTeacherDashboard(userName) {
         initialView: 'dayGridMonth',
         locale: 'ja',
         height: 'auto',
-        events: fetchEvents, 
-        eventColor: '#e74c3c', // 赤色
+        events: fetchEvents,
 
-        // 予約クリックで削除
-        eventClick: async function(info) {
-            const eventObj = info.event;
-            const confirmMsg = `【予約削除】\n名前: ${eventObj.title}\n日付: ${eventObj.startStr}\n\nこの予約を取り消しますか？`;
-            
-            if (!confirm(confirmMsg)) return;
+        // 教師も予約を追加できるようにする
+        dateClick: async function(info) {
+            const timeStr = prompt(`【管理者登録】\n${info.dateStr} に予定を追加しますか？\n時間を入力してください (例: 13:00)`);
+            if (!timeStr) return;
 
             try {
-                const res = await fetch(`${BASE_URL}/delete_schedule`, {
+                const res = await fetch(`${BASE_URL}/book`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
                         'ngrok-skip-browser-warning': 'true'
                     },
-                    body: JSON.stringify({ id: eventObj.id }) 
+                    body: JSON.stringify({
+                        userId: lineProfile.userId,
+                        userName: "管理者: " + lineProfile.displayName,
+                        date: info.dateStr,
+                        time: timeStr
+                    })
                 });
-
                 const result = await res.json();
                 if (result.status === 'success') {
-                    alert("削除しました。");
-                    eventObj.remove(); 
+                    alert("管理者予定を追加しました。");
+                    calendar.refetchEvents();
                 } else {
-                    alert("削除失敗: " + result.message);
+                    alert("エラー: " + result.message);
                 }
             } catch (e) {
                 alert("通信エラー: " + e);
+            }
+        },
+
+        // 予約クリックで「承認」または「削除」
+        eventClick: async function(info) {
+            const eventObj = info.event;
+            const props = eventObj.extendedProps;
+            const statusText = props.status === 1 ? "確定済み" : "未確定(申請中)";
+            
+            // 選択肢を表示 (ブラウザ標準機能ではボタンを複数出せないので、promptで代用または確認ダイアログ連打)
+            // ここではシンプルに confirm の分岐で実装します
+            
+            // 1. 削除しますか？
+            if (confirm(`【${statusText}】\n${eventObj.title}\n日時: ${eventObj.startStr} ${props.time}\n\nこの予約を削除しますか？\n(キャンセルを押すと承認メニューに進みます)`)) {
+                // 削除処理
+                deleteSchedule(eventObj.id);
+                eventObj.remove();
+            } 
+            // 2. 承認しますか？ (未確定の場合のみ)
+            else if (props.status === 0) {
+                if (confirm("では、この予約を【確定】してLINEを送りますか？")) {
+                    const msg = prompt("学生へのメッセージを入力してください", "予約を受け付けました！当日お待ちしています。");
+                    if (msg !== null) {
+                        confirmSchedule(eventObj.id, msg);
+                    }
+                }
             }
         }
     });
     calendar.render();
 }
 
+// 予約削除処理
+async function deleteSchedule(id) {
+    try {
+        await fetch(`${BASE_URL}/delete_schedule`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            },
+            body: JSON.stringify({ id: id }) 
+        });
+        alert("削除しました。");
+    } catch (e) {
+        alert("削除エラー: " + e);
+    }
+}
+
+// 予約確定処理
+async function confirmSchedule(id, message) {
+    try {
+        const res = await fetch(`${BASE_URL}/confirm_schedule`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            },
+            body: JSON.stringify({ id: id, message: message }) 
+        });
+        const result = await res.json();
+        if (result.status === 'success') {
+            alert("✅ 確定しました！学生にLINEを送りました。");
+            calendar.refetchEvents(); // 色を変えるために再読み込み
+        } else {
+            alert("確定エラー: " + result.message);
+        }
+    } catch (e) {
+        alert("通信エラー: " + e);
+    }
+}
+
 // --------------------------------------------------
-// 登録関連
+// 登録フォームなど (変更なし)
 // --------------------------------------------------
+function showRegistrationForm(profile) {
+    document.getElementById('display-name').innerText = profile.displayName;
+    if (profile.pictureUrl) document.getElementById('profile-img').src = profile.pictureUrl;
+    document.getElementById('student-page').style.display = 'none';
+    document.getElementById('teacher-page').style.display = 'none';
+    document.getElementById('registration-form').style.display = 'block';
+}
+
 window.toggleTeacherAuth = function(isTeacher) {
     const authArea = document.getElementById('teacher-auth-area');
     authArea.style.display = isTeacher ? 'block' : 'none';
