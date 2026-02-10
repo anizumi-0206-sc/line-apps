@@ -1,6 +1,6 @@
 // ▼▼▼ 設定エリア (書き換えてください) ▼▼▼
 const MY_LIFF_ID = "2009080549-aia5HOne"; 
-const BASE_URL   = "https://exaggerative-zavier-nonfluidly.ngrok-free.de/register"; // ngrokのURL
+const BASE_URL   = "https://exaggerative-zavier-nonfluidly.ngrok-free.de/"; // ngrokのURL
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 let lineProfile = null;
