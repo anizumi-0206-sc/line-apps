@@ -32,19 +32,33 @@ async function main() {
                 if (userStatus.role === 'student') {
                     showStudentCalendar(userStatus.name);
                 } else {
-                    // ★教師画面へ
+                    // 教師画面へ
                     showTeacherDashboard(userStatus.name);
                 }
             } else {
+                // ★ここでエラーが出ていました。下に関数を追加しました！
                 showRegistrationForm(profile);
             }
 
         } catch (e) {
-            alert("エラー: " + e.message);
+            alert("APIエラー: " + e.message);
         }
     } catch (err) {
         alert("LIFF初期化エラー: " + err);
     }
+}
+
+// --------------------------------------------------
+// ★追加: これが抜けていました！(登録フォーム表示)
+// --------------------------------------------------
+function showRegistrationForm(profile) {
+    document.getElementById('display-name').innerText = profile.displayName;
+    if (profile.pictureUrl) document.getElementById('profile-img').src = profile.pictureUrl;
+    
+    // 他の画面を隠してフォームを出す
+    document.getElementById('student-page').style.display = 'none';
+    document.getElementById('teacher-page').style.display = 'none';
+    document.getElementById('registration-form').style.display = 'block';
 }
 
 // --------------------------------------------------
@@ -73,7 +87,7 @@ function showStudentCalendar(userName) {
         initialView: 'dayGridMonth',
         locale: 'ja',
         height: 'auto',
-        events: fetchEvents, // 共通関数を使う
+        events: fetchEvents, 
 
         // 日付クリックで予約
         dateClick: async function(info) {
@@ -108,7 +122,7 @@ function showStudentCalendar(userName) {
 }
 
 // --------------------------------------------------
-// ★教師用ダッシュボード (削除機能付き)
+// 教師用ダッシュボード (削除機能付き)
 // --------------------------------------------------
 function showTeacherDashboard(userName) {
     document.getElementById('teacher-page').style.display = 'block';
@@ -118,10 +132,10 @@ function showTeacherDashboard(userName) {
         initialView: 'dayGridMonth',
         locale: 'ja',
         height: 'auto',
-        events: fetchEvents, // 共通関数を使う
-        eventColor: '#e74c3c', // 教師用は赤色にする
+        events: fetchEvents, 
+        eventColor: '#e74c3c', // 赤色
 
-        // 予約(イベント)クリックで削除
+        // 予約クリックで削除
         eventClick: async function(info) {
             const eventObj = info.event;
             const confirmMsg = `【予約削除】\n名前: ${eventObj.title}\n日付: ${eventObj.startStr}\n\nこの予約を取り消しますか？`;
@@ -135,13 +149,13 @@ function showTeacherDashboard(userName) {
                         'Content-Type': 'application/json',
                         'ngrok-skip-browser-warning': 'true'
                     },
-                    body: JSON.stringify({ id: eventObj.id }) // IDを送る
+                    body: JSON.stringify({ id: eventObj.id }) 
                 });
 
                 const result = await res.json();
                 if (result.status === 'success') {
                     alert("削除しました。");
-                    eventObj.remove(); // 画面からも消す
+                    eventObj.remove(); 
                 } else {
                     alert("削除失敗: " + result.message);
                 }
