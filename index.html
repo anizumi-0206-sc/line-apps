@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>スケジュールアプリ登録</title>
+    <title>スケジュール調整</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
@@ -18,41 +20,42 @@
                 <img id="profile-img" src="" alt="Profile">
                 <p id="display-name">ゲストさん</p>
             </div>
-
             <div class="form-group">
                 <label>あなたの役割を選択してください</label>
                 <div class="radio-group">
                     <label class="radio-card">
                         <input type="radio" name="role" value="student" checked onclick="toggleTeacherAuth(false)">
-                        <div class="card-content">
-                            <span class="icon">🎓</span>
-                            <span>学生</span>
-                        </div>
+                        <div class="card-content"><span class="icon">🎓</span><span>学生</span></div>
                     </label>
-                    
                     <label class="radio-card">
                         <input type="radio" name="role" value="teacher" onclick="toggleTeacherAuth(true)">
-                        <div class="card-content">
-                            <span class="icon">🧑‍🏫</span>
-                            <span>教師</span>
-                        </div>
+                        <div class="card-content"><span class="icon">🧑‍🏫</span><span>教師</span></div>
                     </label>
                 </div>
             </div>
-
             <div id="teacher-auth-area" style="display: none; margin-top: 15px; padding: 10px; background: #fff0f0; border-radius: 5px;">
-                <label for="teacher-pass" style="font-size: 0.9em;">教師用パスワード</label>
-                <input type="password" id="teacher-pass" placeholder="パスワードを入力" 
-                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box;">
+                <label style="font-size: 0.9em;">教師用パスワード</label>
+                <input type="password" id="teacher-pass" placeholder="パスワードを入力" style="width: 100%; padding: 10px; box-sizing: border-box;">
             </div>
-
             <button class="btn-primary" onclick="registerUser()">連携を開始する</button>
         </div>
 
         <div id="complete-message" style="display: none; text-align: center;">
             <h2 style="color: #06C755;">登録完了！🎉</h2>
-            <p>メニューが切り替わりました。<br>右上の×ボタンで閉じてください。</p>
+            <p>メニューが切り替わりました。<br>アプリを閉じてください。</p>
             <button class="btn-secondary" onclick="liff.closeWindow()">閉じる</button>
+        </div>
+
+        <div id="student-page" style="display: none;">
+            <h2 class="page-title">📅 スケジュール登録</h2>
+            <div id="calendar"></div>
+            <div class="info-text">日付をタップして予約できます</div>
+        </div>
+
+        <div id="teacher-page" style="display: none; text-align: center;">
+            <h2 class="page-title">🧑‍🏫 管理画面</h2>
+            <p>ここは教師専用のページです。</p>
+            <p>(スケジュール管理機能は次回実装)</p>
         </div>
     </div>
 
