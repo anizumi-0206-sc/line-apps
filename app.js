@@ -3,7 +3,6 @@ const MY_LIFF_ID = "2009080549-aia5HOne";
 const BASE_URL   = "https://exaggerative-zavier-nonfluidly.ngrok-free.dev/"; // ngrokのURL
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-
 let lineProfile = null;
 let calendar = null;
 
@@ -26,21 +25,17 @@ async function main() {
                 body: JSON.stringify({ userId: profile.userId })
             });
 
-            if (!response.ok) throw new Error("API Error");
             const userStatus = await response.json();
-
             document.getElementById('loading').style.display = 'none';
 
             if (userStatus.status === 'registered') {
                 if (userStatus.role === 'student') {
-                    // 学生 -> カレンダー表示
                     showStudentCalendar(userStatus.name);
                 } else {
-                    // 教師 -> 管理画面
-                    document.getElementById('teacher-page').style.display = 'block';
+                    // ★教師画面へ
+                    showTeacherDashboard(userStatus.name);
                 }
             } else {
-                // 未登録 -> 登録フォーム
                 showRegistrationForm(profile);
             }
 
@@ -53,14 +48,23 @@ async function main() {
 }
 
 // --------------------------------------------------
-// 画面表示関数
+// 共通: イベント取得関数
 // --------------------------------------------------
-function showRegistrationForm(profile) {
-    document.getElementById('display-name').innerText = profile.displayName;
-    if (profile.pictureUrl) document.getElementById('profile-img').src = profile.pictureUrl;
-    document.getElementById('registration-form').style.display = 'block';
+async function fetchEvents(info, successCallback, failureCallback) {
+    try {
+        const res = await fetch(`${BASE_URL}/get_schedules`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
+        const events = await res.json();
+        successCallback(events);
+    } catch (e) {
+        failureCallback(e);
+    }
 }
 
+// --------------------------------------------------
+// 学生用カレンダー
+// --------------------------------------------------
 function showStudentCalendar(userName) {
     document.getElementById('student-page').style.display = 'block';
     
@@ -69,28 +73,12 @@ function showStudentCalendar(userName) {
         initialView: 'dayGridMonth',
         locale: 'ja',
         height: 'auto',
-        
-        // ★イベント(予約)をサーバーから取得
-        events: async function(info, successCallback, failureCallback) {
-            try {
-                const res = await fetch(`${BASE_URL}/get_schedules`, {
-                    headers: { 'ngrok-skip-browser-warning': 'true' }
-                });
-                const events = await res.json();
-                successCallback(events);
-            } catch (e) {
-                failureCallback(e);
-            }
-        },
+        events: fetchEvents, // 共通関数を使う
 
-        // ★日付クリックで予約処理
+        // 日付クリックで予約
         dateClick: async function(info) {
-            const dateStr = info.dateStr;
-            const confirmMsg = `${dateStr} に面談を予約しますか？`;
-            
-            if (!confirm(confirmMsg)) return;
+            if (!confirm(`${info.dateStr} に面談を予約しますか？`)) return;
 
-            // サーバーへ送信
             try {
                 const res = await fetch(`${BASE_URL}/book`, {
                     method: 'POST',
@@ -100,16 +88,13 @@ function showStudentCalendar(userName) {
                     },
                     body: JSON.stringify({
                         userId: lineProfile.userId,
-                        userName: lineProfile.displayName, // LINEの名前を使う
-                        date: dateStr
+                        userName: lineProfile.displayName,
+                        date: info.dateStr
                     })
                 });
-
                 const result = await res.json();
-
                 if (result.status === 'success') {
                     alert("予約しました！");
-                    // カレンダーを再読み込みして、新しい予定を表示
                     calendar.refetchEvents();
                 } else {
                     alert("エラー: " + result.message);
@@ -123,7 +108,53 @@ function showStudentCalendar(userName) {
 }
 
 // --------------------------------------------------
-// 登録関連 (変更なし)
+// ★教師用ダッシュボード (削除機能付き)
+// --------------------------------------------------
+function showTeacherDashboard(userName) {
+    document.getElementById('teacher-page').style.display = 'block';
+    
+    const calendarEl = document.getElementById('teacher-calendar');
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'ja',
+        height: 'auto',
+        events: fetchEvents, // 共通関数を使う
+        eventColor: '#e74c3c', // 教師用は赤色にする
+
+        // 予約(イベント)クリックで削除
+        eventClick: async function(info) {
+            const eventObj = info.event;
+            const confirmMsg = `【予約削除】\n名前: ${eventObj.title}\n日付: ${eventObj.startStr}\n\nこの予約を取り消しますか？`;
+            
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                const res = await fetch(`${BASE_URL}/delete_schedule`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({ id: eventObj.id }) // IDを送る
+                });
+
+                const result = await res.json();
+                if (result.status === 'success') {
+                    alert("削除しました。");
+                    eventObj.remove(); // 画面からも消す
+                } else {
+                    alert("削除失敗: " + result.message);
+                }
+            } catch (e) {
+                alert("通信エラー: " + e);
+            }
+        }
+    });
+    calendar.render();
+}
+
+// --------------------------------------------------
+// 登録関連
 // --------------------------------------------------
 window.toggleTeacherAuth = function(isTeacher) {
     const authArea = document.getElementById('teacher-auth-area');
