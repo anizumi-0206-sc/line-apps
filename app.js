@@ -3,7 +3,7 @@ const MY_LIFF_ID = "2009080549-aia5HOne";
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 // バックエンドのURL (Step 3で書き換えます)
-const API_URL = "https://exaggerative-zavier-nonfluidly.ngrok-free.dev/register"; 
+const API_URL = "https://exaggerative-zavier-nonfluidly.ngrok-free.de/register"; 
 
 // --------------------------------------------------
 // 1. メイン処理 (アプリ起動時に動く)
